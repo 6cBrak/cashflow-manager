@@ -16,7 +16,7 @@ echo.
 :: =====================================================
 :: CONFIGURATION
 :: =====================================================
-set INSTALL_DIR=D:\projetCaisse
+set INSTALL_DIR=C:\projetCaisse
 set GITHUB_URL=https://github.com/6cBrak/cashflow-manager.git
 set MYSQL_BIN=C:\xampp\mysql\bin
 set DB_NAME=cashflow_db
