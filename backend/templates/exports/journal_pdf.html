@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 15mm 10mm;
+    @bottom-center {
+      content: "Page " counter(page) " / " counter(pages) " — {{ organisation }} — Journal de caisse {{ mois_label }} {{ annee }}";
+      font-size: 8pt;
+      color: #666;
+    }
+  }
+  body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 9pt; color: #222; }
+  h1 { text-align: center; font-size: 14pt; color: #2F4F8F; margin-bottom: 2mm; }
+  h2 { text-align: center; font-size: 10pt; color: #555; margin-top: 0; }
+  .soldes { display: flex; justify-content: space-between; margin: 4mm 0; padding: 3mm 5mm; background: #f0f4ff; border: 1px solid #b0c4de; border-radius: 3px; }
+  .soldes span { font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+  thead th { background: #2F4F8F; color: white; padding: 4px 6px; text-align: center; font-size: 8.5pt; border: 1px solid #1a3a6f; }
+  tbody td { padding: 3px 5px; border: 1px solid #ccc; font-size: 8pt; }
+  tbody tr.entree td { background: #ddeeff; }
+  tbody tr.depense td { background: #ffdddd; }
+  .montant { text-align: right; font-family: monospace; }
+  tfoot td { background: #e8e8e8; font-weight: bold; border: 1px solid #aaa; padding: 4px 5px; font-size: 8.5pt; }
+  .tfoot-montant { text-align: right; font-family: monospace; }
+  .pj { text-align: center; }
+</style>
+</head>
+<body>
+  <h1>JOURNAL DE CAISSE — {{ mois_label|upper }} {{ annee }}</h1>
+  <h2>{{ organisation }}</h2>
+
+  <div class="soldes">
+    <div>Solde reporté : <span>{{ solde_reporte|floatformat:2 }} FCFA</span></div>
+    <div>Total entrées : <span>{{ total_entrees|floatformat:2 }} FCFA</span></div>
+    <div>Total dépenses : <span>{{ total_depenses|floatformat:2 }} FCFA</span></div>
+    <div>Solde du mois : <span>{{ solde_final|floatformat:2 }} FCFA</span></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:8%">Date</th>
+        <th style="width:8%">Nature</th>
+        <th style="width:22%">Prestataire / Client</th>
+        <th style="width:13%">Montant encaissé</th>
+        <th style="width:13%">Montant décaissé</th>
+        <th style="width:32%">Commentaire</th>
+        <th style="width:4%">PJ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for op in operations %}
+      <tr class="{% if op.nature == 'ENTREE' %}entree{% else %}depense{% endif %}">
+        <td style="text-align:center">{{ op.date_operation|date:"d/m/Y" }}</td>
+        <td style="text-align:center">{{ op.get_nature_display }}</td>
+        <td>{% if op.tiers %}{{ op.tiers.nom }}{% else %}{{ op.tiers_libre }}{% endif %}</td>
+        <td class="montant">{% if op.nature == 'ENTREE' %}{{ op.montant|floatformat:2 }}{% endif %}</td>
+        <td class="montant">{% if op.nature == 'DEPENSE' %}{{ op.montant|floatformat:2 }}{% endif %}</td>
+        <td>{{ op.commentaire }}</td>
+        <td class="pj">{% if op.piece_jointe %}📎{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;color:#999">Aucune opération ce mois</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" style="text-align:right">TOTAUX</td>
+        <td class="tfoot-montant">{{ total_entrees|floatformat:2 }}</td>
+        <td class="tfoot-montant">{{ total_depenses|floatformat:2 }}</td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+</body>
+</html>
