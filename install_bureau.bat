@@ -158,12 +158,12 @@ echo  Mise a jour de pip...
 
 echo  Installation des dependances Python...
 echo  ^(cela peut prendre 3-5 minutes^)
-"%PIP%" install -r backend\requirements.txt
+"%PIP%" install -r "%INSTALL_DIR%\backend\requirements.txt"
 if errorlevel 1 (
     echo.
     echo  Echec standard - tentative avec binaires pre-compiles...
     "%PIP%" install mysqlclient --only-binary=:all:
-    "%PIP%" install -r backend\requirements.txt
+    "%PIP%" install -r "%INSTALL_DIR%\backend\requirements.txt"
     if errorlevel 1 goto :erreur_pip
 )
 echo  OK : Dependances Python installees
@@ -216,17 +216,17 @@ if not exist "media" mkdir media
 if not exist "static" mkdir static
 
 echo  Application des migrations...
-"%PYTHON%" manage.py migrate --noinput
+"%PYTHON%" "%INSTALL_DIR%\backend\manage.py" migrate --noinput
 if errorlevel 1 goto :erreur_migrate
 echo  OK : Migrations appliquees
 
 if not exist "%SQL_DUMP%" (
     echo  Creation du compte administrateur...
-    "%PYTHON%" create_superuser.py
+    "%PYTHON%" "%INSTALL_DIR%\backend\create_superuser.py"
 )
 
 echo  Collecte des fichiers statiques...
-"%PYTHON%" manage.py collectstatic --noinput --clear
+"%PYTHON%" "%INSTALL_DIR%\backend\manage.py" collectstatic --noinput --clear
 if errorlevel 1 (
     echo  ATTENTION : collectstatic incomplet - peut affecter le style de l'admin
 ) else (
@@ -273,7 +273,7 @@ echo ======================================================
 echo.
 set /p LAUNCH="Lancer l'application maintenant ? (O/N) : "
 if /i "!LAUNCH!"=="O" (
-    start "Django CashFlow" cmd /k "cd /d %INSTALL_DIR%\backend && %PYTHON% waitress_server.py"
+    start "Django CashFlow" cmd /k "%PYTHON% %INSTALL_DIR%\backend\waitress_server.py"
     timeout /t 4 /nobreak >nul
     start "" "http://localhost:8000"
 )
