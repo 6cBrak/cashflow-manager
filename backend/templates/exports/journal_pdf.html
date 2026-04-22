@@ -3,77 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <style>
-  @page {
-    size: A4 landscape;
-    margin: 15mm 10mm;
-    @bottom-center {
-      content: "Page " counter(page) " / " counter(pages) " — {{ organisation }} — Journal de caisse {{ mois_label }} {{ annee }}";
-      font-size: 8pt;
-      color: #666;
-    }
-  }
-  body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 9pt; color: #222; }
-  h1 { text-align: center; font-size: 14pt; color: #2F4F8F; margin-bottom: 2mm; }
-  h2 { text-align: center; font-size: 10pt; color: #555; margin-top: 0; }
-  .soldes { display: flex; justify-content: space-between; margin: 4mm 0; padding: 3mm 5mm; background: #f0f4ff; border: 1px solid #b0c4de; border-radius: 3px; }
-  .soldes span { font-weight: bold; }
-  table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
-  thead th { background: #2F4F8F; color: white; padding: 4px 6px; text-align: center; font-size: 8.5pt; border: 1px solid #1a3a6f; }
-  tbody td { padding: 3px 5px; border: 1px solid #ccc; font-size: 8pt; }
-  tbody tr.entree td { background: #ddeeff; }
-  tbody tr.depense td { background: #ffdddd; }
-  .montant { text-align: right; font-family: monospace; }
-  tfoot td { background: #e8e8e8; font-weight: bold; border: 1px solid #aaa; padding: 4px 5px; font-size: 8.5pt; }
-  .tfoot-montant { text-align: right; font-family: monospace; }
-  .pj { text-align: center; }
+  @page { size: A4 landscape; margin: 12mm 10mm; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #222; }
+  h1 { text-align: center; font-size: 13pt; color: #2F4F8F; margin: 0 0 2pt 0; }
+  h2 { text-align: center; font-size: 10pt; color: #555; margin: 0 0 6pt 0; }
+  .soldes { margin-bottom: 8pt; font-size: 8.5pt; }
+  .soldes td { background: #f0f4ff; border: 1px solid #b0c4de; padding: 3pt 6pt; }
+  .soldes .val { font-weight: bold; }
+  .journal { width: 100%; border-collapse: collapse; margin-top: 4pt; font-size: 8pt; }
+  .journal th { background-color: #2F4F8F; color: white; padding: 4pt 4pt; text-align: center; border: 1px solid #1a3a6f; }
+  .journal td { padding: 3pt 4pt; border: 1px solid #ccc; }
+  .entree { background-color: #ddeeff; }
+  .depense { background-color: #ffdddd; }
+  .right { text-align: right; }
+  .center { text-align: center; }
+  .totaux td { background-color: #e8e8e8; font-weight: bold; border: 1px solid #aaa; }
+  .footer { text-align: center; font-size: 7pt; color: #888; margin-top: 8pt; }
 </style>
 </head>
 <body>
-  <h1>JOURNAL DE CAISSE — {{ mois_label|upper }} {{ annee }}</h1>
+  <h1>JOURNAL DE CAISSE &mdash; {{ mois_label|upper }} {{ annee }}</h1>
   <h2>{{ organisation }}</h2>
 
-  <div class="soldes">
-    <div>Solde reporté : <span>{{ solde_reporte|floatformat:2 }} FCFA</span></div>
-    <div>Total entrées : <span>{{ total_entrees|floatformat:2 }} FCFA</span></div>
-    <div>Total dépenses : <span>{{ total_depenses|floatformat:2 }} FCFA</span></div>
-    <div>Solde du mois : <span>{{ solde_final|floatformat:2 }} FCFA</span></div>
-  </div>
+  <table class="soldes">
+    <tr>
+      <td class="label">Solde report&eacute; :</td>
+      <td class="val">{{ solde_reporte|floatformat:2 }} FCFA</td>
+      <td width="20">&nbsp;</td>
+      <td class="label">Total encaiss&eacute; :</td>
+      <td class="val">{{ total_entrees|floatformat:2 }} FCFA</td>
+      <td width="20">&nbsp;</td>
+      <td class="label">Total d&eacute;caiss&eacute; :</td>
+      <td class="val">{{ total_depenses|floatformat:2 }} FCFA</td>
+      <td width="20">&nbsp;</td>
+      <td class="label">Solde du mois :</td>
+      <td class="val">{{ solde_final|floatformat:2 }} FCFA</td>
+    </tr>
+  </table>
 
-  <table>
+  <table class="journal">
     <thead>
       <tr>
-        <th style="width:8%">Date</th>
-        <th style="width:8%">Nature</th>
-        <th style="width:22%">Prestataire / Client</th>
-        <th style="width:13%">Montant encaissé</th>
-        <th style="width:13%">Montant décaissé</th>
-        <th style="width:32%">Commentaire</th>
-        <th style="width:4%">PJ</th>
+        <th width="60">Date</th>
+        <th width="55">Nature</th>
+        <th width="160">Prestataire / Client</th>
+        <th width="95">Encaiss&eacute; (FCFA)</th>
+        <th width="95">D&eacute;caiss&eacute; (FCFA)</th>
+        <th>Commentaire</th>
+        <th width="25">PJ</th>
       </tr>
     </thead>
     <tbody>
       {% for op in operations %}
       <tr class="{% if op.nature == 'ENTREE' %}entree{% else %}depense{% endif %}">
-        <td style="text-align:center">{{ op.date_operation|date:"d/m/Y" }}</td>
-        <td style="text-align:center">{{ op.get_nature_display }}</td>
+        <td class="center">{{ op.date_operation|date:"d/m/Y" }}</td>
+        <td class="center">{{ op.get_nature_display }}</td>
         <td>{% if op.tiers %}{{ op.tiers.nom }}{% else %}{{ op.tiers_libre }}{% endif %}</td>
-        <td class="montant">{% if op.nature == 'ENTREE' %}{{ op.montant|floatformat:2 }}{% endif %}</td>
-        <td class="montant">{% if op.nature == 'DEPENSE' %}{{ op.montant|floatformat:2 }}{% endif %}</td>
+        <td class="right">{% if op.nature == 'ENTREE' %}{{ op.montant|floatformat:2 }}{% endif %}</td>
+        <td class="right">{% if op.nature == 'DEPENSE' %}{{ op.montant|floatformat:2 }}{% endif %}</td>
         <td>{{ op.commentaire }}</td>
-        <td class="pj">{% if op.piece_jointe %}📎{% endif %}</td>
+        <td class="center">{% if op.piece_jointe %}[PJ]{% endif %}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="7" style="text-align:center;color:#999">Aucune opération ce mois</td></tr>
+      <tr><td colspan="7" class="center" style="padding:8pt;color:#999">Aucune op&eacute;ration ce mois</td></tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="3" style="text-align:right">TOTAUX</td>
-        <td class="tfoot-montant">{{ total_entrees|floatformat:2 }}</td>
-        <td class="tfoot-montant">{{ total_depenses|floatformat:2 }}</td>
-        <td colspan="2"></td>
-      </tr>
-    </tfoot>
+    <tr class="totaux">
+      <td colspan="3" class="right">TOTAUX</td>
+      <td class="right">{{ total_entrees|floatformat:2 }}</td>
+      <td class="right">{{ total_depenses|floatformat:2 }}</td>
+      <td colspan="2"></td>
+    </tr>
   </table>
+
+  <p class="footer">{{ organisation }} &mdash; Journal de caisse {{ mois_label }} {{ annee }}</p>
 </body>
 </html>

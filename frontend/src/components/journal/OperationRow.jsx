@@ -1,5 +1,5 @@
 import { useAuth } from '../../context/AuthContext'
-import { getFichierUrl } from '../../api/fichiers'
+import { downloadFichier } from '../../api/fichiers'
 
 const fmt = v => Number(v).toLocaleString('fr-FR', { minimumFractionDigits: 2 })
 
@@ -31,13 +31,11 @@ export default function OperationRow({ op, isCloture, onEdit, onDelete, onAttach
       </td>
       <td className="px-3 py-2 text-center">
         {op.has_piece_jointe ? (
-          <a
-            href={getFichierUrl(op.id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-500 hover:text-primary-700"
-            title="Voir la pièce jointe"
-          >📎</a>
+          <button
+            onClick={() => downloadFichier(op.id, op.tiers_nom)}
+            className="text-gray-500 hover:text-primary-700 cursor-pointer"
+            title="Télécharger la pièce jointe"
+          >📎</button>
         ) : (
           !isCloture && (
             <button onClick={() => onAttach(op)} className="text-gray-300 hover:text-gray-500 text-lg leading-none" title="Joindre un fichier">+</button>

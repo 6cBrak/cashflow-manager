@@ -99,10 +99,16 @@ export default function JournalPage() {
         </div>
         <MonthNav mois={mois} annee={annee} onPrev={prevMonth} onNext={nextMonth} isCloture={solde?.is_cloture} />
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => exportExcel(mois, annee)} className="btn-secondary text-xs gap-1">
+          <button
+            onClick={() => exportExcel(mois, annee).catch(() => toast.error('Erreur export Excel.'))}
+            className="btn-secondary text-xs gap-1"
+          >
             📥 Excel
           </button>
-          <button onClick={() => exportPdf(mois, annee)} className="btn-secondary text-xs gap-1">
+          <button
+            onClick={() => exportPdf(mois, annee).catch(() => toast.error('Erreur export PDF.'))}
+            className="btn-secondary text-xs gap-1"
+          >
             📄 PDF
           </button>
           {isAdmin && !solde?.is_cloture && (

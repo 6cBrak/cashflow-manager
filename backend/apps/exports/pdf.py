@@ -39,11 +39,9 @@ def generate_pdf(mois: int, annee: int) -> bytes:
     }
     html = render_to_string('exports/journal_pdf.html', context)
 
-    try:
-        from weasyprint import HTML
-        pdf_bytes = HTML(string=html).write_pdf()
-    except ImportError:
-        raise ImportError(
-            'WeasyPrint n\'est pas installé. Installez-le avec: pip install WeasyPrint'
-        )
-    return pdf_bytes
+    from xhtml2pdf import pisa
+    buf = io.BytesIO()
+    result = pisa.CreatePDF(io.StringIO(html), dest=buf, encoding='utf-8')
+    if result.err:
+        raise RuntimeError(f'Erreur génération PDF : {result.err}')
+    return buf.getvalue()
