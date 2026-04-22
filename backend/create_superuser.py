@@ -16,12 +16,12 @@ PASSWORD = 'Admin@2024!'
 FULL_NAME = 'Administrateur EPA_OUAGA'
 
 if User.objects.filter(email=EMAIL).exists():
-    print(f'✓ Superuser "{EMAIL}" existe déjà.')
+    print(f'[OK] Superuser "{EMAIL}" existe deja.')
 else:
     User.objects.create_superuser(
         email=EMAIL,
         password=PASSWORD,
         full_name=FULL_NAME,
     )
-    print(f'✓ Superuser créé : {EMAIL} / {PASSWORD}')
-    print('  ⚠️  Changez le mot de passe après la première connexion !')
+    print(f'[OK] Superuser cree : {EMAIL} / {PASSWORD}')
+    print('  Changez le mot de passe apres la premiere connexion !')
