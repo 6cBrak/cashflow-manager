@@ -153,8 +153,14 @@ if not exist "%PYTHON%" (
     echo  OK : Virtualenv existant conserve
 )
 
-echo  Mise a jour de pip...
-"%PIP%" install --upgrade pip --quiet
+echo  Mise a jour de pip, setuptools et wheel...
+"%PIP%" install --upgrade pip setuptools wheel --quiet
+
+echo  Installation de Pillow (binaire pre-compile)...
+"%PIP%" install "Pillow==10.4.0" --only-binary=:all: --quiet
+if errorlevel 1 (
+    echo  ATTENTION : Pillow binaire echoue - tentative source...
+)
 
 echo  Installation des dependances Python...
 echo  ^(cela peut prendre 3-5 minutes^)
@@ -162,7 +168,8 @@ echo  ^(cela peut prendre 3-5 minutes^)
 if errorlevel 1 (
     echo.
     echo  Echec standard - tentative avec binaires pre-compiles...
-    "%PIP%" install mysqlclient --only-binary=:all:
+    "%PIP%" install mysqlclient --only-binary=:all: --quiet
+    "%PIP%" install Pillow --only-binary=:all: --quiet
     "%PIP%" install -r "%INSTALL_DIR%\backend\requirements.txt"
     if errorlevel 1 goto :erreur_pip
 )
