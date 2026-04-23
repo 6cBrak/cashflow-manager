@@ -197,7 +197,7 @@ if not exist "%INSTALL_DIR%\backend\.env" (
     (
         echo SECRET_KEY=django-secret-key-cashflow-epa-ouaga-2024-change-in-prod
         echo DEBUG=False
-        echo ALLOWED_HOSTS=localhost,127.0.0.1
+        echo ALLOWED_HOSTS=*
         echo.
         echo DB_NAME=cashflow_db
         echo DB_USER=root
@@ -208,7 +208,7 @@ if not exist "%INSTALL_DIR%\backend\.env" (
         echo JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
         echo JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
         echo.
-        echo CORS_ALLOWED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+        echo CORS_ALLOW_ALL_ORIGINS=True
         echo.
         echo MEDIA_URL=/media/
         echo MEDIA_ROOT=media/
