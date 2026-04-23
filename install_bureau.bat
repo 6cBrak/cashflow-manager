@@ -42,11 +42,16 @@ echo ======================================================
 echo  [1/7] Verification des prerequis
 echo ======================================================
 
-:: Python
-echo  - Python...
-python --version >nul 2>&1
-if errorlevel 1 goto :erreur_python
-for /f "tokens=*" %%v in ('python --version 2^>^&1') do echo    OK : %%v
+:: Python 3.12 (version recommandee - 3.13+ non supporte par mysqlclient/Pillow)
+echo  - Python 3.12...
+py -3.12 --version >nul 2>&1
+if errorlevel 1 (
+    python --version 2>&1 | findstr /R "3\.[89]\. 3\.1[012]\." >nul
+    if errorlevel 1 goto :erreur_python
+    echo    OK : Python detecte ^(attention : Python 3.13+ peut poser probleme^)
+) else (
+    for /f "tokens=*" %%v in ('py -3.12 --version 2^>^&1') do echo    OK : %%v
+)
 
 :: Node.js
 echo  - Node.js...
@@ -145,8 +150,12 @@ echo ======================================================
 cd /d "%INSTALL_DIR%"
 
 if not exist "%PYTHON%" (
-    echo  Creation du virtualenv...
-    python -m venv .venv
+    echo  Creation du virtualenv avec Python 3.12...
+    py -3.12 -m venv .venv >nul 2>&1
+    if errorlevel 1 (
+        echo  py -3.12 introuvable, utilisation de python par defaut...
+        python -m venv .venv
+    )
     if errorlevel 1 goto :erreur_venv
     echo  OK : Virtualenv cree
 ) else (
@@ -293,12 +302,14 @@ goto :fin
 
 :erreur_python
 echo.
-echo  *** ERREUR : Python non detecte ***
+echo  *** ERREUR : Python 3.12 requis ***
+echo.
+echo  Python 3.13 et 3.14 ne sont PAS compatibles avec ce projet.
 echo.
 echo  Solution :
-echo    1. Allez sur https://python.org/downloads
-echo    2. Telechargez Python 3.11 ou superieur
-echo    3. Lors de l'installation, COCHEZ "Add Python to PATH"
+echo    1. Allez sur https://www.python.org/downloads/release/python-3128/
+echo    2. Telechargez "Windows installer (64-bit)"
+echo    3. Cochez "Add Python 3.12 to PATH" et "Install for all users"
 echo    4. Redemarrez ce script
 echo.
 goto :fin
