@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage'
 import JournalPage from './pages/JournalPage'
 import TiersPage from './pages/TiersPage'
 import UsersPage from './pages/UsersPage'
+import InscriptionsPage from './pages/formations/InscriptionsPage'
+import InscriptionDetailPage from './pages/formations/InscriptionDetailPage'
 
 export default function App() {
   return (
@@ -20,6 +22,8 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route index element={<JournalPage />} />
             <Route path="tiers" element={<TiersPage />} />
+            <Route path="formations" element={<InscriptionsPage />} />
+            <Route path="formations/:id" element={<InscriptionDetailPage />} />
             <Route path="admin/users" element={<UsersPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

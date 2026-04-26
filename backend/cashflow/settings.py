@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'apps.operations',
     'apps.fichiers',
     'apps.exports',
+    'apps.formations',
 ]
 
 MIDDLEWARE = [

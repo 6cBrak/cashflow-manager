@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/v1/tiers/', include('apps.tiers.urls')),
     path('api/v1/fichiers/', include('apps.fichiers.urls')),
     path('api/v1/exports/', include('apps.exports.urls')),
+    path('api/v1/', include('apps.formations.urls')),
     # Catch-all : toutes les routes non-API → React index.html
     re_path(r'^(?!api/|admin/|media/|static/).*$', react_index),
 ]

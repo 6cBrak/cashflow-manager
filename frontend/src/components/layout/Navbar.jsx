@@ -46,6 +46,7 @@ export default function Navbar() {
       <div className="flex items-center gap-1">
         {navLink('/', 'Journal')}
         {navLink('/tiers', 'Prestataires')}
+        {navLink('/formations', 'Formations')}
         {isAdmin && navLink('/admin/users', 'Utilisateurs')}
       </div>
 
