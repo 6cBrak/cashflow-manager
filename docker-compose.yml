@@ -29,6 +29,7 @@ services:
       - web
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web"
       - "traefik.http.routers.cashflow.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.cashflow.entrypoints=websecure"
       - "traefik.http.routers.cashflow.tls.certresolver=letsencrypt"
