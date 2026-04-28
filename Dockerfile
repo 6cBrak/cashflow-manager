@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y \
     default-libmysqlclient-dev \
     gcc \
     pkg-config \
+    libjpeg-dev \
+    zlib1g-dev \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
