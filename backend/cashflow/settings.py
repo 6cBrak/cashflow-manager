@@ -143,6 +143,11 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
 }
 
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost:8000'
+).split(',')
+
 _cors_all = config('CORS_ALLOW_ALL_ORIGINS', default='False') == 'True'
 if _cors_all:
     CORS_ALLOW_ALL_ORIGINS = True
