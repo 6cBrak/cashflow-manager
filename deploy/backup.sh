@@ -1,0 +1,47 @@
+#!/bin/bash
+set -e
+
+# ── Config ────────────────────────────────────────────────────────────────────
+APP_DIR="/opt/cashflow"
+BACKUP_DIR="/opt/cashflow/backups"
+KEEP_DAYS=30
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/cashflow_$DATE.sql.gz"
+LOG_FILE="$BACKUP_DIR/backup.log"
+
+# ── Lecture du mot de passe depuis .env ───────────────────────────────────────
+DB_PASSWORD=$(grep '^DB_PASSWORD=' "$APP_DIR/.env" | cut -d '=' -f2)
+DB_NAME=$(grep '^DB_NAME=' "$APP_DIR/.env" | cut -d '=' -f2)
+
+if [ -z "$DB_PASSWORD" ] || [ -z "$DB_NAME" ]; then
+    echo "[$(date)] ERREUR : impossible de lire DB_PASSWORD ou DB_NAME depuis .env" >> "$LOG_FILE"
+    exit 1
+fi
+
+# ── Création du dossier backup ────────────────────────────────────────────────
+mkdir -p "$BACKUP_DIR"
+
+# ── Dump MySQL + compression ──────────────────────────────────────────────────
+cd "$APP_DIR"
+
+if docker compose exec -T db mysqldump \
+    -u root \
+    -p"$DB_PASSWORD" \
+    --single-transaction \
+    --routines \
+    --triggers \
+    "$DB_NAME" | gzip > "$BACKUP_FILE"; then
+
+    SIZE=$(du -sh "$BACKUP_FILE" | cut -f1)
+    echo "[$(date)] OK  : $BACKUP_FILE ($SIZE)" >> "$LOG_FILE"
+else
+    echo "[$(date)] ERREUR : mysqldump a échoué" >> "$LOG_FILE"
+    rm -f "$BACKUP_FILE"
+    exit 1
+fi
+
+# ── Suppression des anciens backups ──────────────────────────────────────────
+DELETED=$(find "$BACKUP_DIR" -name "cashflow_*.sql.gz" -mtime +$KEEP_DAYS -print -delete | wc -l)
+if [ "$DELETED" -gt 0 ]; then
+    echo "[$(date)] Nettoyage : $DELETED fichier(s) supprimé(s) (> $KEEP_DAYS jours)" >> "$LOG_FILE"
+fi
