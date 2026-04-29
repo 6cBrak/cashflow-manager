@@ -131,20 +131,10 @@ class InscriptionDetailSerializer(serializers.ModelSerializer):
             'created_by', 'created_by_name', 'created_at', 'updated_at',
         ]
 
-    def create(self, validated_data):
-        from datetime import timedelta
-        request = self.context['request']
-        validated_data['created_by'] = request.user
-
-        inscription = Inscription(**validated_data)
-        # Calculer le montant par tranche avant save
+    def _creer_tranches(self, inscription):
         montant_par_tranche = inscription.montant_par_tranche
         nombre_tranches = inscription.nombre_tranches
         date_base = inscription.date_inscription
-
-        inscription.save()
-
-        # Créer les tranches automatiquement
         for i in range(1, nombre_tranches + 1):
             date_echeance = date_base.replace(
                 month=((date_base.month - 1 + i) % 12) + 1,
@@ -157,4 +147,37 @@ class InscriptionDetailSerializer(serializers.ModelSerializer):
                 date_echeance=date_echeance,
             )
 
+    def create(self, validated_data):
+        request = self.context['request']
+        validated_data['created_by'] = request.user
+        inscription = Inscription(**validated_data)
+        inscription.save()
+        self._creer_tranches(inscription)
         return inscription
+
+    def update(self, instance, validated_data):
+        FINANCIAL_FIELDS = {'formation', 'montant_formation', 'bourse_pourcentage', 'frais_inscription', 'nombre_tranches'}
+
+        financial_changed = False
+        for field in FINANCIAL_FIELDS:
+            if field not in validated_data:
+                continue
+            if field == 'formation':
+                if validated_data['formation'].pk != instance.formation_id:
+                    financial_changed = True
+                    break
+            else:
+                if validated_data[field] != getattr(instance, field):
+                    financial_changed = True
+                    break
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if financial_changed:
+            instance.tranches.all().delete()
+            self._creer_tranches(instance)
+            instance.refresh_statut()
+
+        return instance

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getInscription, getRecuPdf } from '../../api/formations'
 import VersementModal from '../../components/formations/VersementModal'
+import InscriptionModal from '../../components/formations/InscriptionModal'
 
 const fmt = (n) => Number(n).toLocaleString('fr-FR')
 
@@ -33,6 +34,7 @@ export default function InscriptionDetailPage() {
   const [ins, setIns] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showVersement, setShowVersement] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
   const [downloadingRecu, setDownloadingRecu] = useState(null)
 
   const load = useCallback(async () => {
@@ -90,11 +92,16 @@ export default function InscriptionDetailPage() {
           </div>
           <div className="text-sm text-gray-500">{ins.numero} — {ins.formation_nom}</div>
         </div>
-        {ins.statut !== 'SOLDE' && (
-          <button onClick={() => setShowVersement(true)} className="btn-primary text-sm">
-            + Enregistrer un versement
+        <div className="flex gap-2">
+          <button onClick={() => setShowEdit(true)} className="btn-secondary text-sm">
+            Modifier l'inscription
           </button>
-        )}
+          {ins.statut !== 'SOLDE' && (
+            <button onClick={() => setShowVersement(true)} className="btn-primary text-sm">
+              + Enregistrer un versement
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Résumé financier */}
@@ -229,6 +236,12 @@ export default function InscriptionDetailPage() {
       <VersementModal
         open={showVersement}
         onClose={() => setShowVersement(false)}
+        inscription={ins}
+        onSaved={load}
+      />
+      <InscriptionModal
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
         inscription={ins}
         onSaved={load}
       />

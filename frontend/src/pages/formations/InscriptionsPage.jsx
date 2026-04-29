@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { getInscriptions, getStatsInscriptions } from '../../api/formations'
+import { getInscriptions, getStatsInscriptions, getFormations } from '../../api/formations'
 import { useAuth } from '../../context/AuthContext'
 import InscriptionModal from '../../components/formations/InscriptionModal'
 import FormationModal from '../../components/formations/FormationModal'
@@ -24,8 +24,16 @@ export default function InscriptionsPage() {
   const [search, setSearch] = useState('')
   const [filtreStatut, setFiltreStatut] = useState('')
   const [filtreCentre, setFiltreCentre] = useState('')
+  const [filtreFormation, setFiltreFormation] = useState('')
+  const [filtreDateDebut, setFiltreDateDebut] = useState('')
+  const [filtreDateFin, setFiltreDateFin] = useState('')
+  const [formationsList, setFormationsList] = useState([])
   const [showInscription, setShowInscription] = useState(false)
   const [showFormation, setShowFormation] = useState(false)
+
+  useEffect(() => {
+    getFormations({ actif: 'true' }).then(r => setFormationsList(r.data.results || r.data)).catch(() => {})
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -34,6 +42,9 @@ export default function InscriptionsPage() {
       if (search) params.search = search
       if (filtreStatut) params.statut = filtreStatut
       if (filtreCentre) params.centre = filtreCentre
+      if (filtreFormation) params.formation = filtreFormation
+      if (filtreDateDebut) params.date_debut = filtreDateDebut
+      if (filtreDateFin) params.date_fin = filtreDateFin
       const [insRes, statsRes] = await Promise.all([
         getInscriptions(params),
         getStatsInscriptions(params),
@@ -45,9 +56,19 @@ export default function InscriptionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, filtreStatut, filtreCentre])
+  }, [search, filtreStatut, filtreCentre, filtreFormation, filtreDateDebut, filtreDateFin])
 
   useEffect(() => { load() }, [load])
+
+  const hasActiveFilters = search || filtreStatut || filtreCentre || filtreFormation || filtreDateDebut || filtreDateFin
+  const resetFilters = () => {
+    setSearch('')
+    setFiltreStatut('')
+    setFiltreCentre('')
+    setFiltreFormation('')
+    setFiltreDateDebut('')
+    setFiltreDateFin('')
+  }
 
   return (
     <div className="space-y-5">
@@ -88,26 +109,62 @@ export default function InscriptionsPage() {
       )}
 
       {/* Filtres */}
-      <div className="flex flex-wrap gap-2">
-        <input
-          type="search"
-          className="input w-64 text-sm"
-          placeholder="Rechercher nom, téléphone, n°…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        <select className="input w-40 text-sm" value={filtreStatut} onChange={e => setFiltreStatut(e.target.value)}>
-          <option value="">Tous les statuts</option>
-          <option value="EN_COURS">En cours</option>
-          <option value="SOLDE">Soldé</option>
-          <option value="ABANDON">Abandon</option>
-        </select>
-        <select className="input w-44 text-sm" value={filtreCentre} onChange={e => setFiltreCentre(e.target.value)}>
-          <option value="">Tous les centres</option>
-          <option value="OUAGA">EPA Ouagadougou</option>
-          <option value="BOBO">EPA Bobo</option>
-          <option value="SAHEL">EPA Sahel/Dori</option>
-        </select>
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          <input
+            type="search"
+            className="input w-64 text-sm"
+            placeholder="Rechercher nom, téléphone, n°…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <select className="input w-40 text-sm" value={filtreStatut} onChange={e => setFiltreStatut(e.target.value)}>
+            <option value="">Tous les statuts</option>
+            <option value="EN_COURS">En cours</option>
+            <option value="SOLDE">Soldé</option>
+            <option value="ABANDON">Abandon</option>
+          </select>
+          <select className="input w-44 text-sm" value={filtreCentre} onChange={e => setFiltreCentre(e.target.value)}>
+            <option value="">Tous les centres</option>
+            <option value="OUAGA">EPA Ouagadougou</option>
+            <option value="BOBO">EPA Bobo</option>
+            <option value="SAHEL">EPA Sahel/Dori</option>
+          </select>
+          <select className="input w-56 text-sm" value={filtreFormation} onChange={e => setFiltreFormation(e.target.value)}>
+            <option value="">Toutes les formations</option>
+            {['INFORMATIQUE','HUMANITAIRE'].map(prog => (
+              <optgroup key={prog} label={prog === 'INFORMATIQUE' ? 'Informatique & Management' : 'Action Humanitaire'}>
+                {formationsList.filter(f => f.programme === prog).map(f => (
+                  <option key={f.id} value={f.id}>{f.nom}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs text-gray-500 shrink-0">Date d'inscription :</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-400">Du</span>
+            <input
+              type="date" className="input text-sm w-38"
+              value={filtreDateDebut}
+              onChange={e => setFiltreDateDebut(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-400">Au</span>
+            <input
+              type="date" className="input text-sm w-38"
+              value={filtreDateFin}
+              onChange={e => setFiltreDateFin(e.target.value)}
+            />
+          </div>
+          {hasActiveFilters && (
+            <button onClick={resetFilters} className="text-xs text-gray-400 hover:text-red-500 underline ml-1">
+              Réinitialiser les filtres
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tableau */}

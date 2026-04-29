@@ -69,6 +69,14 @@ class InscriptionViewSet(viewsets.ModelViewSet):
         if annee:
             qs = qs.filter(date_inscription__year=annee)
 
+        date_debut = self.request.query_params.get('date_debut')
+        if date_debut:
+            qs = qs.filter(date_inscription__gte=date_debut)
+
+        date_fin = self.request.query_params.get('date_fin')
+        if date_fin:
+            qs = qs.filter(date_inscription__lte=date_fin)
+
         return qs
 
     def get_serializer_class(self):

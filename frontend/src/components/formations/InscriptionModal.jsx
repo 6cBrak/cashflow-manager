@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import Modal from '../modals/Modal'
-import { createInscription } from '../../api/formations'
-import { getFormations, getPayeurs, createPayeur } from '../../api/formations'
+import { createInscription, updateInscription, getFormations, getPayeurs, createPayeur } from '../../api/formations'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -23,32 +22,71 @@ const EMPTY = {
   date_inscription: today(),
 }
 
+const FINANCIAL_FIELDS = ['formation', 'montant_formation', 'bourse_pourcentage', 'frais_inscription', 'nombre_tranches']
+
 const fmt = (n) => Number(n).toLocaleString('fr-FR')
 
-export default function InscriptionModal({ open, onClose, onSaved }) {
+export default function InscriptionModal({ open, onClose, onSaved, inscription = null }) {
+  const isEdit = !!inscription
   const [form, setForm] = useState(EMPTY)
   const [formations, setFormations] = useState([])
   const [payeurs, setPayeurs] = useState([])
   const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState(1) // 1=identité, 2=formation+paiement
+  const [step, setStep] = useState(1)
   const [newPayeur, setNewPayeur] = useState({ nom: '', telephone: '', type_payeur: 'PARRAIN' })
   const [showNewPayeur, setShowNewPayeur] = useState(false)
 
   useEffect(() => {
-    if (open) {
+    if (!open) return
+    if (inscription) {
+      setForm({
+        civilite: inscription.civilite || 'M',
+        nom: inscription.nom || '',
+        prenom: inscription.prenom || '',
+        telephone: inscription.telephone || '',
+        email: inscription.email || '',
+        date_naissance: inscription.date_naissance || '',
+        lieu_naissance: inscription.lieu_naissance || '',
+        nationalite: inscription.nationalite || 'Burkinabè',
+        ville: inscription.ville || '',
+        quartier: inscription.quartier || '',
+        secteur: inscription.secteur || '',
+        cnib_numero: inscription.cnib_numero || '',
+        cnib_date: inscription.cnib_date || '',
+        cnib_lieu: inscription.cnib_lieu || '',
+        contact_urgence_nom: inscription.contact_urgence_nom || '',
+        contact_urgence_tel: inscription.contact_urgence_tel || '',
+        formation: inscription.formation || '',
+        centre: inscription.centre || 'OUAGA',
+        option_cours: inscription.option_cours || 'JOUR',
+        niveau_etude: inscription.niveau_etude || '',
+        statut_professionnel: inscription.statut_professionnel || '',
+        nom_employeur: inscription.nom_employeur || '',
+        projet_apres_formation: inscription.projet_apres_formation || '',
+        qui_paye: inscription.qui_paye || 'MOI_MEME',
+        payeur: inscription.payeur || '',
+        montant_formation: inscription.montant_formation || '',
+        bourse_pourcentage: inscription.bourse_pourcentage || 0,
+        frais_inscription: inscription.frais_inscription || 15000,
+        nombre_tranches: inscription.nombre_tranches || 1,
+        date_inscription: inscription.date_inscription || today(),
+      })
+    } else {
       setForm(EMPTY)
-      setStep(1)
-      setShowNewPayeur(false)
-      getFormations({ actif: 'true' }).then(r => setFormations(r.data.results || r.data)).catch(() => {})
-      getPayeurs().then(r => setPayeurs(r.data.results || r.data)).catch(() => {})
     }
-  }, [open])
+    setStep(1)
+    setShowNewPayeur(false)
+    // En édition, charger toutes les formations (y compris inactives) pour retrouver celle de l'inscrit
+    getFormations(isEdit ? {} : { actif: 'true' })
+      .then(r => setFormations(r.data.results || r.data))
+      .catch(() => {})
+    getPayeurs().then(r => setPayeurs(r.data.results || r.data)).catch(() => {})
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
   const selectedFormation = formations.find(f => String(f.id) === String(form.formation))
 
-  // Calcul automatique
   const fraisInscription = Number(form.frais_inscription) || 15000
   const montantFormation = Number(form.montant_formation) || 0
   const reste = Math.max(0, montantFormation - fraisInscription)
@@ -56,6 +94,13 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
   const netTranches = reste - reduction
   const parTranche = form.nombre_tranches > 0 ? Math.round(netTranches / form.nombre_tranches) : 0
   const totalDu = fraisInscription + netTranches
+
+  // Avertissement : champs financiers modifiés avec des versements existants
+  const hasVersements = isEdit && (inscription.versements?.length ?? 0) > 0
+  const financialChanged = isEdit && FINANCIAL_FIELDS.some(
+    f => Number(form[f]) !== Number(inscription[f])
+  )
+  const showWarning = hasVersements && financialChanged
 
   const handleFormationChange = (e) => {
     const f = formations.find(f => String(f.id) === e.target.value)
@@ -104,14 +149,19 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
 
     setLoading(true)
     try {
-      await createInscription(payload)
-      toast.success('Inscription créée.')
+      if (isEdit) {
+        await updateInscription(inscription.id, payload)
+        toast.success('Inscription modifiée.')
+      } else {
+        await createInscription(payload)
+        toast.success('Inscription créée.')
+      }
       onSaved()
       onClose()
     } catch (err) {
       const detail = err.response?.data
       const msg = typeof detail === 'string' ? detail
-        : detail?.detail || Object.values(detail || {})[0]?.[0] || 'Erreur lors de la création.'
+        : detail?.detail || Object.values(detail || {})[0]?.[0] || 'Erreur lors de l\'enregistrement.'
       toast.error(msg)
     } finally {
       setLoading(false)
@@ -119,7 +169,21 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Nouvelle inscription" size="xl">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? `Modifier — ${inscription?.numero}` : 'Nouvelle inscription'}
+      size="xl"
+    >
+      {/* Avertissement versements existants */}
+      {showWarning && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded text-sm text-amber-800">
+          <strong>Attention :</strong> Des versements ont déjà été enregistrés. Modifier les champs
+          financiers (formation, montant, bourse, tranches) supprimera l'ancien échéancier et en
+          créera un nouveau.
+        </div>
+      )}
+
       {/* Étapes */}
       <div className="flex gap-1 mb-5">
         {[{ n: 1, label: 'Identité' }, { n: 2, label: 'Formation & Paiement' }].map(s => (
@@ -128,7 +192,9 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
             type="button"
             onClick={() => setStep(s.n)}
             className={`flex-1 py-1.5 text-xs font-medium rounded border transition-colors ${
-              step === s.n ? 'bg-primary-700 text-white border-primary-700' : 'border-gray-200 text-gray-500 hover:border-gray-400'
+              step === s.n
+                ? 'bg-primary-700 text-white border-primary-700'
+                : 'border-gray-200 text-gray-500 hover:border-gray-400'
             }`}
           >
             {s.n}. {s.label}
@@ -188,8 +254,8 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
                 <input className="input" value={form.ville} onChange={e => set('ville', e.target.value)} />
               </div>
               <div>
-                <label className="label">Quartier / Secteur</label>
-                <input className="input" value={form.quartier} onChange={e => set('quartier', e.target.value)} placeholder="Quartier" />
+                <label className="label">Quartier</label>
+                <input className="input" value={form.quartier} onChange={e => set('quartier', e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -211,14 +277,20 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
                 <label className="label">Niveau d'étude</label>
                 <select className="input" value={form.niveau_etude} onChange={e => set('niveau_etude', e.target.value)}>
                   <option value="">—</option>
-                  {[['BEPC','BEPC'],['BAC','BAC'],['BAC_PLUS','BAC+'],['LICENCE','Licence'],['M1_M2','M1/M2']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                  {[['BEPC','BEPC'],['BAC','BAC'],['BAC_PLUS','BAC+'],['LICENCE','Licence'],['M1_M2','M1/M2']].map(([v,l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="label">Statut professionnel</label>
                 <select className="input" value={form.statut_professionnel} onChange={e => set('statut_professionnel', e.target.value)}>
                   <option value="">—</option>
-                  {[['EMPLOYE_TP','Employé temps plein'],['FREELANCE','Free-lance'],['STAGIAIRE','Stagiaire'],['ENTREPRENEUR','Entrepreneur'],['ETUDIANT','Étudiant(e)'],['AUTRE','Autre']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                  {[
+                    ['EMPLOYE_TP','Employé temps plein'],['FREELANCE','Free-lance'],
+                    ['STAGIAIRE','Stagiaire'],['ENTREPRENEUR','Entrepreneur'],
+                    ['ETUDIANT','Étudiant(e)'],['AUTRE','Autre'],
+                  ].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
             </div>
@@ -256,7 +328,9 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
                   {['INFORMATIQUE','HUMANITAIRE'].map(prog => (
                     <optgroup key={prog} label={prog === 'INFORMATIQUE' ? 'Informatique & Management' : 'Action Humanitaire'}>
                       {formations.filter(f => f.programme === prog).map(f => (
-                        <option key={f.id} value={f.id}>{f.nom}</option>
+                        <option key={f.id} value={f.id}>
+                          {f.nom}{!f.is_active ? ' (inactive)' : ''}
+                        </option>
                       ))}
                     </optgroup>
                   ))}
@@ -291,18 +365,24 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label">Montant formation (FCFA) *</label>
-                  <input type="number" className="input text-right font-mono" required
+                  <input
+                    type="number" className="input text-right font-mono" required
                     value={form.montant_formation}
-                    onChange={e => set('montant_formation', e.target.value)} />
+                    onChange={e => set('montant_formation', e.target.value)}
+                  />
                   {selectedFormation && Number(form.montant_formation) !== Number(selectedFormation.prix_base) && (
-                    <p className="text-xs text-amber-600 mt-0.5">Prix catalogue : {fmt(selectedFormation.prix_base)} FCFA (modifié)</p>
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      Prix catalogue : {fmt(selectedFormation.prix_base)} FCFA (modifié)
+                    </p>
                   )}
                 </div>
                 <div>
                   <label className="label">Frais d'inscription (FCFA)</label>
-                  <input type="number" className="input text-right font-mono"
+                  <input
+                    type="number" className="input text-right font-mono"
                     value={form.frais_inscription}
-                    onChange={e => set('frais_inscription', e.target.value)} />
+                    onChange={e => set('frais_inscription', e.target.value)}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 mt-2">
@@ -323,22 +403,30 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
               </div>
             </div>
 
-            {/* Récapitulatif calcul */}
             {montantFormation > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm">
                 <div className="font-semibold text-amber-800 mb-2 text-xs">Récapitulatif financier</div>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                  <span className="text-gray-600">Prix formation :</span><span className="font-mono font-bold">{fmt(montantFormation)} FCFA</span>
-                  <span className="text-gray-600">Frais inscription (payés maintenant) :</span><span className="font-mono">{fmt(fraisInscription)} FCFA</span>
-                  <span className="text-gray-600">Reste avant bourse :</span><span className="font-mono">{fmt(reste)} FCFA</span>
-                  {form.bourse_pourcentage > 0 && <><span className="text-gray-600">Bourse {form.bourse_pourcentage}% :</span><span className="font-mono text-green-700">- {fmt(reduction)} FCFA</span></>}
-                  <span className="text-gray-600">Net en {form.nombre_tranches} tranche(s) de :</span><span className="font-mono font-bold text-primary-700">{fmt(parTranche)} FCFA</span>
-                  <span className="font-semibold text-amber-800">Total à payer :</span><span className="font-mono font-bold text-amber-800">{fmt(totalDu)} FCFA</span>
+                  <span className="text-gray-600">Prix formation :</span>
+                  <span className="font-mono font-bold">{fmt(montantFormation)} FCFA</span>
+                  <span className="text-gray-600">Frais inscription (payés maintenant) :</span>
+                  <span className="font-mono">{fmt(fraisInscription)} FCFA</span>
+                  <span className="text-gray-600">Reste avant bourse :</span>
+                  <span className="font-mono">{fmt(reste)} FCFA</span>
+                  {form.bourse_pourcentage > 0 && (
+                    <>
+                      <span className="text-gray-600">Bourse {form.bourse_pourcentage}% :</span>
+                      <span className="font-mono text-green-700">- {fmt(reduction)} FCFA</span>
+                    </>
+                  )}
+                  <span className="text-gray-600">Net en {form.nombre_tranches} tranche(s) de :</span>
+                  <span className="font-mono font-bold text-primary-700">{fmt(parTranche)} FCFA</span>
+                  <span className="font-semibold text-amber-800">Total à payer :</span>
+                  <span className="font-mono font-bold text-amber-800">{fmt(totalDu)} FCFA</span>
                 </div>
               </div>
             )}
 
-            {/* Qui paye */}
             <div>
               <label className="label">Qui paye les frais ?</label>
               <select className="input" value={form.qui_paye} onChange={e => { set('qui_paye', e.target.value); set('payeur', '') }}>
@@ -357,12 +445,12 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
                 </div>
                 {showNewPayeur ? (
                   <div className="flex gap-2">
-                    <select className="input w-36" value={newPayeur.type_payeur} onChange={e => setNewPayeur(p => ({...p, type_payeur: e.target.value}))}>
+                    <select className="input w-36" value={newPayeur.type_payeur} onChange={e => setNewPayeur(p => ({ ...p, type_payeur: e.target.value }))}>
                       <option value="PARRAIN">Parrain</option>
                       <option value="ENTREPRISE">Entreprise/ONG</option>
                     </select>
-                    <input className="input flex-1" placeholder="Nom *" value={newPayeur.nom} onChange={e => setNewPayeur(p => ({...p, nom: e.target.value}))} />
-                    <input className="input w-36" placeholder="Téléphone" value={newPayeur.telephone} onChange={e => setNewPayeur(p => ({...p, telephone: e.target.value}))} />
+                    <input className="input flex-1" placeholder="Nom *" value={newPayeur.nom} onChange={e => setNewPayeur(p => ({ ...p, nom: e.target.value }))} />
+                    <input className="input w-36" placeholder="Téléphone" value={newPayeur.telephone} onChange={e => setNewPayeur(p => ({ ...p, telephone: e.target.value }))} />
                     <button type="button" onClick={handleAddPayeur} className="btn-primary text-xs px-3">Ajouter</button>
                   </div>
                 ) : (
@@ -377,7 +465,7 @@ export default function InscriptionModal({ open, onClose, onSaved }) {
             <div className="flex justify-between pt-2">
               <button type="button" onClick={() => setStep(1)} className="btn-secondary">← Retour</button>
               <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? 'Enregistrement…' : 'Créer l\'inscription'}
+                {loading ? 'Enregistrement…' : isEdit ? 'Enregistrer les modifications' : 'Créer l\'inscription'}
               </button>
             </div>
           </div>
