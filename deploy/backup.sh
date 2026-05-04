@@ -45,3 +45,48 @@ DELETED=$(find "$BACKUP_DIR" -name "cashflow_*.sql.gz" -mtime +$KEEP_DAYS -print
 if [ "$DELETED" -gt 0 ]; then
     echo "[$(date)] Nettoyage : $DELETED fichier(s) supprimé(s) (> $KEEP_DAYS jours)" >> "$LOG_FILE"
 fi
+
+# ── Envoi email avec le fichier en pièce jointe ───────────────────────────────
+MAIL_TO="esoftcommunication.net@gmail.com"
+MAIL_FROM="alerte@esoftplus-bf.com"
+MAIL_SUBJECT="[CashFlow] Backup du $(date '+%d/%m/%Y à %H:%M')"
+FILENAME=$(basename "$BACKUP_FILE")
+BOUNDARY="==CASHFLOW_BACKUP_$(date +%s)=="
+
+{
+    printf "From: %s\r\n" "$MAIL_FROM"
+    printf "To: %s\r\n" "$MAIL_TO"
+    printf "Subject: %s\r\n" "$MAIL_SUBJECT"
+    printf "MIME-Version: 1.0\r\n"
+    printf "Content-Type: multipart/mixed; boundary=\"%s\"\r\n" "$BOUNDARY"
+    printf "\r\n"
+
+    # Corps texte
+    printf -- "--%s\r\n" "$BOUNDARY"
+    printf "Content-Type: text/plain; charset=utf-8\r\n"
+    printf "\r\n"
+    printf "Bonjour,\r\n\r\n"
+    printf "Le backup automatique de CashFlow Manager s'est effectué avec succès.\r\n\r\n"
+    printf "  Base de données : %s\r\n" "$DB_NAME"
+    printf "  Fichier         : %s\r\n" "$FILENAME"
+    printf "  Taille          : %s\r\n" "$SIZE"
+    printf "  Date            : %s\r\n" "$(date '+%d/%m/%Y à %H:%M')"
+    printf "\r\n-- EPA CashFlow Backup automatique\r\n"
+
+    # Pièce jointe (base64)
+    printf -- "--%s\r\n" "$BOUNDARY"
+    printf "Content-Type: application/gzip\r\n"
+    printf "Content-Transfer-Encoding: base64\r\n"
+    printf "Content-Disposition: attachment; filename=\"%s\"\r\n" "$FILENAME"
+    printf "\r\n"
+    base64 "$BACKUP_FILE"
+    printf "\r\n"
+
+    printf -- "--%s--\r\n" "$BOUNDARY"
+} | msmtp --account=esoftplus -t
+
+if [ $? -eq 0 ]; then
+    echo "[$(date)] Mail : backup envoyé à $MAIL_TO" >> "$LOG_FILE"
+else
+    echo "[$(date)] Mail : échec envoi à $MAIL_TO" >> "$LOG_FILE"
+fi
