@@ -119,7 +119,7 @@ class Operation(models.Model):
         db_table = 'operations'
         verbose_name = 'Opération'
         verbose_name_plural = 'Opérations'
-        ordering = ['date_operation', 'created_at']
+        ordering = ['-created_at']
 
     def __str__(self):
         return f'{self.nature} - {self.montant} FCFA ({self.date_operation})'

@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext'
 import MonthNav from '../components/journal/MonthNav'
 import SoldeBar from '../components/journal/SoldeBar'
 import OperationRow from '../components/journal/OperationRow'
+import CaisseChart from '../components/journal/CaisseChart'
+import AnneeChart from '../components/journal/AnneeChart'
 import OperationModal from '../components/modals/OperationModal'
 import AttachModal from '../components/modals/AttachModal'
 import ConfirmModal from '../components/modals/ConfirmModal'
@@ -127,6 +129,12 @@ export default function JournalPage() {
       {/* Bandeau soldes */}
       <SoldeBar solde={solde} />
 
+      {/* Graphique annuel */}
+      <AnneeChart />
+
+      {/* Graphique du mois */}
+      <CaisseChart operations={operations} />
+
       {/* Tableau */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -134,6 +142,7 @@ export default function JournalPage() {
             <thead>
               <tr className="bg-primary-800 text-white text-xs uppercase tracking-wide">
                 <th className="px-3 py-3 text-center w-24">Date</th>
+                <th className="px-3 py-3 text-center w-16">Heure</th>
                 <th className="px-3 py-3 text-center w-24">Nature</th>
                 <th className="px-3 py-3 text-left">Prestataire / Client</th>
                 <th className="px-3 py-3 text-right w-32">Encaissé (FCFA)</th>
@@ -146,14 +155,14 @@ export default function JournalPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-gray-400">
+                  <td colSpan={9} className="text-center py-12 text-gray-400">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto mb-2" />
                     Chargement…
                   </td>
                 </tr>
               ) : operations.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-gray-400">
+                  <td colSpan={9} className="text-center py-12 text-gray-400">
                     Aucune opération ce mois.
                     {!solde?.is_cloture && (
                       <button
@@ -181,7 +190,7 @@ export default function JournalPage() {
             {operations.length > 0 && (
               <tfoot>
                 <tr className="bg-gray-100 font-bold border-t-2 border-gray-300">
-                  <td colSpan={3} className="px-3 py-2 text-right text-xs uppercase text-gray-600">Totaux</td>
+                  <td colSpan={4} className="px-3 py-2 text-right text-xs uppercase text-gray-600">Totaux</td>
                   <td className="px-3 py-2 text-right font-mono text-blue-800">{fmt(totalEntrees)}</td>
                   <td className="px-3 py-2 text-right font-mono text-red-800">{fmt(totalDepenses)}</td>
                   <td colSpan={3} />

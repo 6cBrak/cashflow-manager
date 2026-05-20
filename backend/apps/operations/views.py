@@ -199,3 +199,41 @@ class ClotureMoisView(APIView):
             suivant.save()
 
         return Response(SoldeMoisSerializer(solde).data, status=status.HTTP_200_OK)
+
+
+MOIS_NOMS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+             'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
+
+
+class StatsAnneeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            annee = int(request.query_params.get('annee', timezone.now().year))
+        except ValueError:
+            return Response({'detail': 'annee invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = []
+        for mois in range(1, 13):
+            ops = Operation.objects.filter(mois=mois, annee=annee, is_deleted=False)
+            entrees = ops.filter(nature='ENTREE').aggregate(t=Sum('montant'))['t'] or Decimal('0')
+            depenses = ops.filter(nature='DEPENSE').aggregate(t=Sum('montant'))['t'] or Decimal('0')
+            data.append({
+                'mois': mois,
+                'label': MOIS_NOMS[mois - 1],
+                'entrees': float(entrees),
+                'depenses': float(depenses),
+            })
+
+        # Liste des années disponibles (années avec au moins une opération)
+        annees = list(
+            Operation.objects.filter(is_deleted=False)
+            .values_list('annee', flat=True)
+            .distinct()
+            .order_by('-annee')
+        )
+        if annee not in annees:
+            annees = sorted(set(annees + [annee]), reverse=True)
+
+        return Response({'annee': annee, 'mois': data, 'annees_disponibles': annees})

@@ -12,3 +12,6 @@ export const getSolde = (mois, annee) =>
 
 export const cloturerMois = (mois, annee) =>
   api.post('/operations/cloture/', { mois, annee })
+
+export const getStatsAnnee = (annee) =>
+  api.get('/operations/stats/', { params: { annee } })

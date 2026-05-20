@@ -9,10 +9,17 @@ export default function OperationRow({ op, isCloture, onEdit, onDelete, onAttach
   const canEdit = !isCloture && (isAdmin || op.created_by === user?.id)
   const canDelete = !isCloture && isAdmin
 
+  const heure = op.created_at
+    ? new Date(op.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    : '—'
+
   return (
     <tr className={`text-sm border-b transition-colors ${isEntree ? 'bg-blue-50 hover:bg-blue-100' : 'bg-red-50 hover:bg-red-100'}`}>
       <td className="px-3 py-2 text-center whitespace-nowrap text-gray-600">
         {new Date(op.date_operation + 'T00:00:00').toLocaleDateString('fr-FR')}
+      </td>
+      <td className="px-3 py-2 text-center whitespace-nowrap text-gray-400 text-xs font-mono">
+        {heure}
       </td>
       <td className="px-3 py-2 text-center">
         <span className={isEntree ? 'badge-entree' : 'badge-depense'}>
